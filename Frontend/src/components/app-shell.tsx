@@ -1,7 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import {
   Activity,
-  BadgeCheck,
   LayoutDashboard,
   Lock,
   Receipt,
@@ -18,7 +17,6 @@ const nav = [
   { to: "/verification", label: "Verification", icon: ShieldCheck },
 ] as const;
 
-
 export function AppShell({
   title,
   subtitle,
@@ -33,11 +31,11 @@ export function AppShell({
       <div className="mx-auto flex max-w-[1400px] gap-0 px-4 md:px-8">
         <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-border py-8 pr-6 lg:flex">
           <Link to="/" className="flex items-center gap-2.5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <BadgeCheck className="h-4.5 w-4.5" />
+            <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg border border-border bg-card">
+              <img src="/logo.jpg" alt="Razorpay 2.0 Logo" className="h-full w-full object-cover" />
             </span>
             <span className="font-display text-lg font-semibold tracking-tight">
-              Clarity
+              Razorpay 2.0
             </span>
           </Link>
 
