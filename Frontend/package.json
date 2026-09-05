@@ -1,5 +1,7 @@
 {
-  "name": "tanstack_start_ts",
+  "name": "clarity-payments-frontend",
+  "version": "2.0.0",
+  "description": "Clarity Payments (Razorpay 2.0) Merchant Console with AI Risk Defense, Revenue Recovery, and Visual Analytics",
   "private": true,
   "sideEffects": false,
   "type": "module",

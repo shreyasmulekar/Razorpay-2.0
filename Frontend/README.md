@@ -1,26 +1,42 @@
-# Payment Perfector
+# ⚡ Clarity Payments — Merchant Console
 
-You are a senior developer at razorpay and you are given with the all the bugs and problems faced by the customers while using their application .now based on all the problems faced in the pdf i need you to create a system that can fix all of these problems. you need to help me create an application that is a better version of razorpay.
+Frontend merchant dashboard for **Clarity Payments (Razorpay 2.0)**. Built with React 19, TanStack Start & Router, Tailwind CSS v4, Recharts, and Sonner.
 
-This project was built with [Lovable](https://lovable.dev).
+---
 
-**Live app**: https://razor-fix-hero.lovable.app
+## 🚀 Quickstart
 
-## Build with Lovable
+```bash
+# Install dependencies
+npm install
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/1ab80160-21d7-4785-bbcb-391ab046fc9e).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
-
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
+# Start local dev server
 npm run dev
+
+# Run type check
+npx tsc --noEmit
+
+# Production build
+npm run build
 ```
+
+---
+
+## 🧭 Routes & Features
+
+- `/` — **Money Flow**: Live balance breakdown, settlement journey, in-transit status, and double-entry ledger drilldown.
+- `/charts` — **Visual Analytics & Intelligence**: 8 interactive financial visualizations (Topological Sankey diagram, Daily Stacked Bar, Market Share Donut, Rate Illusion Multi-Line, Confirmation Latency, Cumulative GPV Area, Stacked Liquidity Area, and 6D Risk Radar).
+- `/risk` — **AI Risk Manager (Track 2)**: Fraud velocity spike detector, abuse ring sentinel, return risk scorer, and honest confusion matrix with ₹ INR false-positive cost accounting.
+- `/recovery` — **AI Revenue Recovery (Track 3)**: Failure cause classifier, stopping rules monitor, batch recovery executor, mandate retry sequencer, and immutable action audit log with live ₹ recovered totals.
+- `/analytics` — **True Success Rate**: Unfiltered vs vanity conversion metrics.
+- `/settlements` — **Settlements & Payouts**: UTR references and bank credit status.
+- `/holds` — **Open Holds**: Reason-coded holds with strict SLA countdowns.
+- `/verification` — **Merchant Compliance**: KYC and business account status.
+
+---
+
+## 🎨 Tech Stack
+- **Framework**: TanStack Start + Vite
+- **UI & Styling**: React 19, Tailwind CSS v4 (Oklch design tokens), Lucide Icons
+- **Charts**: Recharts (Custom SVG topological Sankey, Radar, Stacked Area, etc.)
+- **Notifications**: Sonner Toasts
