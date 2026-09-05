@@ -11,7 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
+import { Route as ChartsRouteImport } from './routes/charts'
 import { Route as HoldsRouteImport } from './routes/holds'
+import { Route as RecoveryRouteImport } from './routes/recovery'
+import { Route as RiskRouteImport } from './routes/risk'
 import { Route as SettlementsRouteImport } from './routes/settlements'
 import { Route as VerificationRouteImport } from './routes/verification'
 
@@ -25,9 +28,24 @@ const AnalyticsRoute = AnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChartsRoute = ChartsRouteImport.update({
+  id: '/charts',
+  path: '/charts',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HoldsRoute = HoldsRouteImport.update({
   id: '/holds',
   path: '/holds',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RecoveryRoute = RecoveryRouteImport.update({
+  id: '/recovery',
+  path: '/recovery',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RiskRoute = RiskRouteImport.update({
+  id: '/risk',
+  path: '/risk',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettlementsRoute = SettlementsRouteImport.update({
@@ -44,14 +62,20 @@ const VerificationRoute = VerificationRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
+  '/charts': typeof ChartsRoute
   '/holds': typeof HoldsRoute
+  '/recovery': typeof RecoveryRoute
+  '/risk': typeof RiskRoute
   '/settlements': typeof SettlementsRoute
   '/verification': typeof VerificationRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
+  '/charts': typeof ChartsRoute
   '/holds': typeof HoldsRoute
+  '/recovery': typeof RecoveryRoute
+  '/risk': typeof RiskRoute
   '/settlements': typeof SettlementsRoute
   '/verification': typeof VerificationRoute
 }
@@ -59,20 +83,42 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
+  '/charts': typeof ChartsRoute
   '/holds': typeof HoldsRoute
+  '/recovery': typeof RecoveryRoute
+  '/risk': typeof RiskRoute
   '/settlements': typeof SettlementsRoute
   '/verification': typeof VerificationRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/analytics' | '/holds' | '/settlements' | '/verification'
+  fullPaths:
+    | '/'
+    | '/analytics'
+    | '/charts'
+    | '/holds'
+    | '/recovery'
+    | '/risk'
+    | '/settlements'
+    | '/verification'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/analytics' | '/holds' | '/settlements' | '/verification'
+  to:
+    | '/'
+    | '/analytics'
+    | '/charts'
+    | '/holds'
+    | '/recovery'
+    | '/risk'
+    | '/settlements'
+    | '/verification'
   id:
     | '__root__'
     | '/'
     | '/analytics'
+    | '/charts'
     | '/holds'
+    | '/recovery'
+    | '/risk'
     | '/settlements'
     | '/verification'
   fileRoutesById: FileRoutesById
@@ -80,7 +126,10 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AnalyticsRoute: typeof AnalyticsRoute
+  ChartsRoute: typeof ChartsRoute
   HoldsRoute: typeof HoldsRoute
+  RecoveryRoute: typeof RecoveryRoute
+  RiskRoute: typeof RiskRoute
   SettlementsRoute: typeof SettlementsRoute
   VerificationRoute: typeof VerificationRoute
 }
@@ -101,11 +150,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AnalyticsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/charts': {
+      id: '/charts'
+      path: '/charts'
+      fullPath: '/charts'
+      preLoaderRoute: typeof ChartsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/holds': {
       id: '/holds'
       path: '/holds'
       fullPath: '/holds'
       preLoaderRoute: typeof HoldsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/recovery': {
+      id: '/recovery'
+      path: '/recovery'
+      fullPath: '/recovery'
+      preLoaderRoute: typeof RecoveryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/risk': {
+      id: '/risk'
+      path: '/risk'
+      fullPath: '/risk'
+      preLoaderRoute: typeof RiskRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settlements': {
@@ -128,7 +198,10 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnalyticsRoute: AnalyticsRoute,
+  ChartsRoute: ChartsRoute,
   HoldsRoute: HoldsRoute,
+  RecoveryRoute: RecoveryRoute,
+  RiskRoute: RiskRoute,
   SettlementsRoute: SettlementsRoute,
   VerificationRoute: VerificationRoute,
 }

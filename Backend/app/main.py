@@ -4,10 +4,11 @@ from pydantic import BaseModel, Field
 from decimal import Decimal
 import uuid
 import asyncio
+import random
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 from app.config import settings
 from app.models.ledger import Base
@@ -17,14 +18,19 @@ from app.models.payment import PaymentIntent, PaymentState
 from app.workers.webhook_worker import ResilientWebhookDispatcher
 from app.services.risk_engine import IntelligentRiskEngine, RiskTier
 
+# Track 2 & 3 routers
+from app.routers.risk_router import risk_router
+from app.routers.recovery_router import recovery_router
+
+
 # 1. Application Setup
 app = FastAPI(
-    title="NextGen Fintech Gateway API", 
-    description="Resilient, double-entry payment infrastructure.",
+    title="NextGen Fintech Gateway API - Buildathon Edition", 
+    description="Resilient, transparent double-entry payment and risk mitigation infrastructure.",
     version="2.0"
 )
 
-# Allow Lovable frontend to connect securely
+# Allow Frontend to connect securely via CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], 
@@ -35,22 +41,49 @@ app.add_middleware(
 
 v1_router = APIRouter(prefix="/v1")
 
-# 2. Database Dependency & Engine Setup (SQLite)
-engine = create_async_engine(
-    settings.DATABASE_URL, 
-    echo=True, 
-    connect_args={"check_same_thread": False}
-)
-AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+# 2. Database Dependency & Engine Setup (Shared via app.db)
+from app.db import engine, AsyncSessionLocal, get_db_session
+
+async def seed_sqlite_database(session: AsyncSession):
+    """Automatically populates gateway_core.db with 5,000 realistic merchant and fraud-profile entries if empty."""
+    result = await session.execute(select(func.count(PaymentIntent.id)))
+    count = result.scalar()
+    
+    if count and count > 100:
+        return # Already seeded
+
+    merchants = ["nimbus_threads", "apex_retail", "zenith_saas", "orbit_pay", "vlebazaar_fake", "stayclassy"]
+    currencies = ["INR", "USD"]
+    
+    for _ in range(5000):
+        is_anomaly = random.random() > 0.85
+        # FIXED: Replaced PaymentState.HOLD with PaymentState.PROCESSING which exists in your model
+        state = PaymentState.FAILED if (is_anomaly and random.random() > 0.5) else (PaymentState.PROCESSING if is_anomaly else PaymentState.SETTLED)
+        
+        payment_id = f"pay_{uuid.uuid4().hex[:16]}"
+        new_payment = PaymentIntent(
+            id=payment_id,
+            idempotency_key=f"idem_{uuid.uuid4().hex[:16]}",
+            merchant_id=random.choice(merchants),
+            amount=Decimal(random.randint(150000 if is_anomaly else 200, 300000 if is_anomaly else 25000)),
+            currency=random.choice(currencies),
+            state=state,
+            is_recurring=random.random() > 0.9
+        )
+        session.add(new_payment)
+    
+    await session.commit()
+    print("Successfully seeded gateway_core.db with 5,000 high-density records.")
 
 @app.on_event("startup")
 async def startup_event():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-
-async def get_db_session():
+    
     async with AsyncSessionLocal() as session:
-        yield session
+        await seed_sqlite_database(session)
+
+
 
 # 3. Request & Response Schemas
 class PaymentCreateRequest(BaseModel):
@@ -190,39 +223,78 @@ async def validate_mandate_preflight(request: MandateValidateRequest):
         reason="MANDATE_VALID: Cleared for execution"
     )
 
-# 6. Analytics & Risk Endpoints
+# 6. Full Analytics, Metrics & Ledger Data Endpoints
+@v1_router.get("/analytics/metrics")
+async def get_gateway_metrics(db: AsyncSession = Depends(get_db_session)):
+    result = await db.execute(select(PaymentIntent))
+    payments = result.scalars().all()
+    
+    total_vol = sum(p.amount for p in payments)
+    settled_count = sum(1 for p in payments if p.state == PaymentState.SETTLED)
+    held_txns = [p for p in payments if p.state == PaymentState.PROCESSING]
+    held_vol = sum(p.amount for p in held_txns)
+    
+    success_rate = round((settled_count / len(payments)) * 100, 2) if payments else 0.0
+
+    return {
+        "grossVolume": float(total_vol),
+        "successRate": success_rate,
+        "riskAnomaliesCount": len(held_txns),
+        "valueOnHold": float(held_vol),
+        "averageLatencyMs": 142,
+        "totalEntities": len(payments)
+    }
+
+@v1_router.get("/ledger")
+async def get_ledger_records(search: str = "", db: AsyncSession = Depends(get_db_session)):
+    query = select(PaymentIntent)
+    result = await db.execute(query)
+    payments = result.scalars().all()
+    
+    formatted = []
+    for p in payments:
+        status_str = "Success" if p.state == PaymentState.SETTLED else ("Held" if p.state == PaymentState.PROCESSING else "Failed")
+        formatted.append({
+            "id": p.id,
+            "merchant": p.merchant_id,
+            "method": "UPI / Card",
+            "amount": float(p.amount),
+            "status": status_str,
+            "currency": p.currency
+        })
+        
+    if search:
+        s = search.lower()
+        formatted = [t for t in formatted if s in t["id"].lower() or s in t["merchant"].lower()]
+        
+    return formatted[:200]
+
 @v1_router.get("/analytics/success-rate")
 async def get_true_success_rate(db: AsyncSession = Depends(get_db_session)):
     result = await db.execute(select(PaymentIntent))
     payments = result.scalars().all()
     
     total_intents = len(payments)
-    settled_count = sum(1 for p in payments if p.state in [PaymentState.SETTLED, PaymentState.PROCESSING])
+    settled_count = sum(1 for p in payments if p.state == PaymentState.SETTLED)
     
     base_factor = max(1, total_intents)
-    silent_timeouts = int(base_factor * 0.18) + (total_intents % 3)  
-    client_aborts = int(base_factor * 0.08) + (total_intents % 2)    
+    silent_timeouts = int(base_factor * 0.12)
+    client_aborts = int(base_factor * 0.05)
     
     valid_attempts = total_intents + client_aborts + silent_timeouts
-    
-    if valid_attempts > 0:
-        true_success_rate = ((settled_count + max(0, total_intents - settled_count)) / valid_attempts) * 100
-    else:
-        true_success_rate = 0.0
-        
-    true_success_rate = max(70.0, min(96.5, 85.0 + (total_intents * 1.5) % 11.8))
-    illusion_success_rate = max(95.0, min(99.9, 99.5 - ((total_intents * 0.7) % 3.5)))
+    true_success_rate = round((settled_count / valid_attempts) * 100, 2) if valid_attempts > 0 else 88.4
+    illusion_success_rate = 97.2
 
     return {
-        "metrics_engine": "Dynamic Database Model",
+        "metrics_engine": "SQLite Live Engine",
         "true_performance": {
-            "success_rate_percentage": round(true_success_rate, 2),
+            "success_rate_percentage": true_success_rate,
             "total_checkout_intents": total_intents,
             "silent_timeouts_captured": silent_timeouts
         },
         "legacy_dashboard_comparison": {
-            "inflated_success_rate_percentage": round(illusion_success_rate, 2),
-            "hidden_failure_variance": round(max(0.0, illusion_success_rate - true_success_rate), 2)
+            "inflated_success_rate_percentage": illusion_success_rate,
+            "hidden_failure_variance": round(illusion_success_rate - true_success_rate, 2)
         }
     }
 
@@ -239,7 +311,7 @@ async def get_active_holds(db: AsyncSession = Depends(get_db_session)):
             "reason": {
                 "code": "AI_VELOCITY_SPIKE",
                 "label": "AI Risk: Transaction velocity 4.2x baseline",
-                "detail": "ML Engine flagged 92 rapid captures. Holding delta above baseline. Remaining funds settled instantly."
+                "detail": "ML Engine flagged rapid captures. Holding delta above baseline."
             },
             "requiredDocs": [
                 {"name": "Invoice sample for flagged window", "status": "submitted"},
@@ -250,25 +322,6 @@ async def get_active_holds(db: AsyncSession = Depends(get_db_session)):
             "hoursElapsed": 12,
             "risk_score": 88.4,
             "auto_release_eligible": True
-        },
-        {
-            "id": f"hold_geo_{uuid.uuid4().hex[:6]}",
-            "amount": 45200,
-            "openedAt": (current_time - timedelta(hours=45)).isoformat(),
-            "autoReleaseAt": (current_time + timedelta(hours=3)).isoformat(),
-            "reason": {
-                "code": "GEO_MISMATCH_ANOMALY",
-                "label": "AI Risk: Cross-border IP routing mismatch",
-                "detail": "Card issued in IN, but transaction routed via high-risk VPN node. Awaiting KYC document validation."
-            },
-            "requiredDocs": [
-                {"name": "Customer KYC verification", "status": "pending"}
-            ],
-            "reviewer": "Risk Pod Alpha",
-            "slaHours": 48,
-            "hoursElapsed": 45,
-            "risk_score": 94.1,
-            "auto_release_eligible": False
         }
     ]
 
@@ -277,8 +330,10 @@ async def get_method_breakdown():
     return [
         {"method": "UPI Intent", "attempts": 8420, "successes": 7361, "issuerDeclines": 512, "gatewayErrors": 61, "timeouts": 214, "webhookLost": 24, "p95LatencyMs": 4100},
         {"method": "Cards (Vaulted)", "attempts": 5240, "successes": 4602, "issuerDeclines": 402, "gatewayErrors": 44, "timeouts": 96, "webhookLost": 8, "p95LatencyMs": 5600},
-        {"method": "Netbanking", "attempts": 1890, "successes": 1502, "issuerDeclines": 121, "gatewayErrors": 29, "timeouts": 142, "webhookLost": 4, "p95LatencyMs": 11200},
     ]
 
-# 7. Register Router
+# 7. Register Routers
 app.include_router(v1_router)
+app.include_router(risk_router)
+app.include_router(recovery_router)
+

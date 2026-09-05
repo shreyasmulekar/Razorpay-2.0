@@ -143,3 +143,15 @@
   color: var(--color-muted-foreground);
 }
 
+@utility hover-lift {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@utility glass-panel {
+  background-color: oklch(1 0 0 / 0.75);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+}
+
+

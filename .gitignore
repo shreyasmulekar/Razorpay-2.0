@@ -2,14 +2,26 @@
 Backend/.venv/
 Backend/__pycache__/
 Backend/*.db
+*.db
 *.pyc
 
 # Node / Frontend
 Frontend/node_modules/
 Frontend/dist/
 Frontend/.vite/
+Frontend/.output/
+Frontend/.nitro/
+Frontend/.wrangler/
+.output/
+.nitro/
+.wrangler/
+
+# Temporary and Backup directories
+Frontend_BACKUP/
+Frontend/razor-fix-hero/
 
 # Environment variables & OS files
 .env
+*.env
 .DS_Store
 Thumbs.db
